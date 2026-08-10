@@ -3,7 +3,10 @@ from kaggle_environments.envs.kaggriculture.kaggriculture import CROPS
 MELON_SEED_COST = CROPS["MELON"]["seed"]
 MELON_MAX_YIELD_DAY = CROPS["MELON"]["max_yield_day"]
 SELL_THRESHOLD = 200
-TARGET_PLANTS = 3  # how many melons to keep growing simultaneously
+TARGET_PLANTS = 6
+PRICE_HISTORY_LEN = 6  # turns of price history to track
+RISING_MIN_GAIN = 5    # price must rise by at least this per turn to be considered "rising"
+
 
 def _step_toward(fx, fy, tx, ty):
     if fx > tx:
@@ -16,6 +19,7 @@ def _step_toward(fx, fy, tx, ty):
         return "SOUTH"
     return None
 
+
 def _count_melons(farm, board_size):
     count = 0
     for y in range(board_size):
@@ -24,6 +28,7 @@ def _count_melons(farm, board_size):
             if isinstance(tile, dict) and tile.get("kind") == "PLANT" and tile["crop"] == "MELON":
                 count += 1
     return count
+
 
 def _find_target_tile(farm, board_size, have_seed, need_space, day, skip_x=None, skip_y=None):
     fx, fy = farm["farmer"]
@@ -54,6 +59,40 @@ def _find_target_tile(farm, board_size, have_seed, need_space, day, skip_x=None,
     candidates.sort(key=lambda c: (priority[c[2]], abs(c[0] - fx) + abs(c[1] - fy)))
     return candidates[0]
 
+
+def _opponent_ripe_count(farms, player, board_size, day):
+    """Count how many ripe/near-ripe melon plants the opponent has."""
+    opp = 1 - player
+    if opp >= len(farms):
+        return 0
+    count = 0
+    for row in farms[opp]["tiles"]:
+        for tile in row:
+            if (isinstance(tile, dict) and tile.get("kind") == "PLANT"
+                    and tile.get("crop") == "MELON"
+                    and tile.get("planted_day") is not None
+                    and (day - tile["planted_day"]) >= MELON_MAX_YIELD_DAY - 1):
+                count += 1
+    return count
+
+
+def _price_trend(history):
+    """Returns 'rising', 'falling', or 'stable' based on recent price history."""
+    if len(history) < 3:
+        return "stable"
+    recent = history[-3:]
+    avg_change = (recent[-1] - recent[0]) / 2
+    if avg_change >= RISING_MIN_GAIN:
+        return "rising"
+    if avg_change <= -RISING_MIN_GAIN:
+        return "falling"
+    return "stable"
+
+
+# Per-player state stored between turns.
+_state = {}
+
+
 def test_melon_maxxer(obs):
     farms = obs.get("farms", [])
     player = obs.get("player", 0)
@@ -72,13 +111,37 @@ def test_melon_maxxer(obs):
     market_prices = (obs.get("market", {}) or {}).get("prices", {})
     melon_price = market_prices.get("MELON", 0)
 
+    # Update price history.
+    if player not in _state:
+        _state[player] = {"price_history": []}
+    state = _state[player]
+    state["price_history"].append(melon_price)
+    if len(state["price_history"]) > PRICE_HISTORY_LEN:
+        state["price_history"].pop(0)
+
+    trend = _price_trend(state["price_history"])
+    opp_ripe = _opponent_ripe_count(farms, player, board_size, day)
+    season_end = day >= 25
+
     market = []
 
-    # Sell melons if price is good enough, or in the last 5 days regardless of price.
     melons_in_shed = shed.get("MELON", 0)
-    season_end = day >= 25
-    if melons_in_shed > 0 and (melon_price >= SELL_THRESHOLD or season_end):
-        market.append(["SELL", "MELON", melons_in_shed])
+    if melons_in_shed > 0:
+        # Always sell at season end.
+        if season_end:
+            market.append(["SELL", "MELON", melons_in_shed])
+        # Sell immediately if opponent is about to dump (get out first).
+        elif opp_ripe >= 3 and melon_price >= 150:
+            market.append(["SELL", "MELON", melons_in_shed])
+        # Price is falling — sell now before it drops further.
+        elif trend == "falling" and melon_price >= SELL_THRESHOLD:
+            market.append(["SELL", "MELON", melons_in_shed])
+        # Price is rising — hold, it'll be worth more soon.
+        elif trend == "rising":
+            pass
+        # Price stable and above threshold — sell normally.
+        elif melon_price >= SELL_THRESHOLD:
+            market.append(["SELL", "MELON", melons_in_shed])
 
     # Buy enough seeds to fill up to TARGET_PLANTS tiles.
     melon_count = _count_melons(farm, board_size)

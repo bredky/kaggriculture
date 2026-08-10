@@ -1,0 +1,57 @@
+Tournament Round 2 (after fixing: watered_today check, melon harvest age, HIRE gating, kind names, LOCKED crashes)
+
+Agent                                  W    L    T  Avg $challenger   Avg $melon
+--------------------------------------------------------------------------------
+wheat_grinder                          0    1    0             5766        21435
+carrot_sprinter                        0    1    0             4619        21435
+melon_baron                            0    1    0            11424        21007
+tomato_perennial                       0    1    0             4142        21435
+strawberry_hedge                       0    1    0             9194        21435
+egg_factory                            0    1    0              900        21435
+milk_machine                           0    1    0             1100        21435
+wool_weaver                            0    1    0             1200        21435
+wheat_feeder                           0    1    0             6176        21435
+fertilizer_seller                      0    1    0             1200        21435
+wheat_melon_alternator                 0    1    0            10422        20857
+carrot_tomato_relay                    0    1    0             4319        21435
+melon_strawberry_pair                  0    1    0             7405        21435
+wheat_flood_timing                     0    1    0             5766        21435
+early_bird_melon                       1    0    0            25024        19297
+goose_wheat_dual                       0    1    0             1500        21435
+tomato_fertilizer_max                  0    1    0             3494        21435
+ne_quadrant_expander                   0    1    0             3823        21435
+late_strawberry_spike                  0    1    0             5754        21435
+carrot_wheat_watcher                   0    1    0             3191        21435
+goose_fertilizer_melon                 0    1    0             1760        21447
+cow_milk_drip                          0    1    0             2515        21435
+three_crop_rotation                    0    1    0             9393        20823
+sheep_wool_wheat                       0    1    0             1875        21435
+strawberry_egg_cafe                    0    1    0             1760        21447
+land_baron                             0    1    0                0        21435
+melon_goose_portfolio                  0    1    0             1890        21447
+shop_responsive                        0    1    0             3586        21435
+fertilizer_arbitrageur                 0    1    0              840        21447
+opponent_mirror                        0    1    0             3791        21435
+melon_price_sniper                     0    1    0            12011        21000
+adaptive_income                        0    1    0             1192        21435
+town_demand_predictor                  0    1    0             1159        21447
+price_momentum_seller                  1    0    0            25403        19351
+compound_goose_empire                  0    1    0              306        21435
+nearest_task_greedy                    0    1    0             1800        21435
+dual_quadrant_melon                    0    1    0             8588        21182
+wheat_egg_steady                       0    1    0             2606        21435
+late_cash_surge                        0    1    0             1520        21447
+opponent_money_watcher                 1    0    0            25545        19276
+staggered_melon_pipeline               0    1    0            16120        20494
+carrot_rush_to_melon                   0    1    0             5000        21340
+four_hand_wheat_blitz                  0    1    0             3150        21435
+melon_micro_seller                     0    1    0            18337        21435
+fertilized_wheat_geese                 0    1    0             3156        21435
+day6_melon_planter                     0    1    0            17606        20190
+tomato_two_wave                        0    1    0             4586        21435
+goose_snowball                         0    1    0             1076        21435
+wheat_tomato_split                     0    1    0             3335        21435
+melon_bail_out                         1    0    0            25475        19351
+melon_maxxer                           0    1    0             6064        21165
+strawberry_maxxer                      0    1    0             8359        21435
+tomato_maxxer                          0    1    0             5940        21435
