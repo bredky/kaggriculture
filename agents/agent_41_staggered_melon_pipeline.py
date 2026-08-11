@@ -64,10 +64,10 @@ def staggered_melon_pipeline(obs):
         active_waves = {w for w, d in wave_schedule.items() if d <= day <= 21}
         pending_waves = active_waves - s["waves_planted"]
 
-        # Each wave = 3 melon seeds
-        seeds_for_wave = 3
+        # Each wave = 4 melon seeds (increased from 3)
+        seeds_for_wave = 4
         for wave in sorted(pending_waves):
-            target_melon = (len(s["waves_planted"]) + 1) * seeds_for_wave
+            target_melon = min(16, (len(s["waves_planted"]) + 1) * seeds_for_wave)
             if seeds.get("MELON", 0) + melon_count < target_melon:
                 need = target_melon - melon_count - seeds.get("MELON", 0)
                 if need > 0:
@@ -94,7 +94,7 @@ def staggered_melon_pipeline(obs):
         harvest_ready = [(x, y, t) for x, y, t in all_tiles
                          if isinstance(t, dict) and t.get("kind") == "PLANT" and t.get("yield_units", 0) > 0 and (t.get("crop") != "MELON" or (day - t.get("planted_day", 0)) >= 10)]
 
-        target_melon_total = min(12, len(s["waves_planted"]) * 3)
+        target_melon_total = min(16, len(s["waves_planted"]) * 4)
         plant_crop = None
         if day <= 21 and melon_count < target_melon_total and seeds.get("MELON", 0) > 0:
             plant_crop = "MELON"

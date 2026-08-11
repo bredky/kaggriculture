@@ -92,10 +92,11 @@ def melon_micro_seller(obs):
         water_urgent = [(x, y, t) for x, y, t in all_tiles
                         if isinstance(t, dict) and t.get("kind") == "PLANT" and not t.get("watered_today", False)]
         harvest_ready = [(x, y, t) for x, y, t in all_tiles
-                         if isinstance(t, dict) and t.get("kind") == "PLANT" and t.get("yield_units", 0) >= 6]
+                         if isinstance(t, dict) and t.get("kind") == "PLANT" and t.get("yield_units", 0) > 0
+                         and (t.get("crop") != "MELON" or (day - t.get("planted_day", 0)) >= 10)]
         harvest_wheat = [(x, y, t) for x, y, t in all_tiles
                           if isinstance(t, dict) and t.get("kind") == "PLANT" and t.get("crop") == "WHEAT"
-                          and t.get("yield_units", 0) > 0 and (t.get("crop") != "MELON" or (day - t.get("planted_day", 0)) >= 10)]
+                          and t.get("yield_units", 0) > 0]
 
         farmer_action = ["PASS"]
 

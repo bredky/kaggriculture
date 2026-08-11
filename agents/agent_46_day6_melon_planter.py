@@ -102,6 +102,11 @@ def day6_melon_planter(obs):
             if not s["melon_bought"]:
                 market_actions.append(["BUY_SEED", "MELON", 12])
                 s["melon_bought"] = True
+            # Continuously restock melon seeds to enable second harvest cycle
+            if seeds.get("MELON", 0) + melon_count < 12:
+                need = 12 - melon_count - seeds.get("MELON", 0)
+                if need > 0:
+                    market_actions.append(["BUY_SEED", "MELON", need])
 
             if shed.get("WHEAT", 0) > 0:
                 market_actions.append(["SELL", "WHEAT", shed["WHEAT"]])
