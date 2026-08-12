@@ -58,31 +58,32 @@ def run_game(fn0, mod0, fn1, mod1):
     env = make("kaggriculture", configuration={"episodeSteps": 720}, debug=False)
     env.reset()
 
-    steps0, steps1 = 0, 0
+    last_money0, last_money1 = 3000, 3000
     while True:
         s0, s1 = env.state[0], env.state[1]
         if s0.status != "ACTIVE":
             break
         obs0, obs1 = s0.observation, s1.observation
+
+        # Track money every turn — final state observation can be None on Kaggle
+        try:
+            p0 = obs0["player"]
+            last_money0 = obs0["farms"][p0].get("money", last_money0)
+        except Exception:
+            pass
+        try:
+            p1 = obs1["player"]
+            last_money1 = obs1["farms"][p1].get("money", last_money1)
+        except Exception:
+            pass
+
         try:   a0 = fn0(obs0)
         except: a0 = {"farmer": ["PASS"], "hands": [], "market": []}
         try:   a1 = fn1(obs1)
         except: a1 = {"farmer": ["PASS"], "hands": [], "market": []}
         env.step([a0, a1])
-        steps0 += 1
 
-    # Use farm["money"] — NOT reward (reward can be None in step-by-step mode)
-    final = env.steps[-1]
-    try:
-        score0 = final[0].observation["farms"][0].get("money", 0) or 0
-    except:
-        score0 = final[0].reward or 0
-    try:
-        score1 = final[1].observation["farms"][1].get("money", 0) or 0
-    except:
-        score1 = final[1].reward or 0
-
-    return score0, score1, steps0
+    return last_money0, last_money1, 0
 
 
 def main():
@@ -111,15 +112,16 @@ def main():
                 # Run suspect as P0
                 s0, s1, steps = run_game(fn_s, mod_s, fn_o, mod_o)
                 kept0 = "✓ KEPT" if s0 >= SCORE_THRESHOLD else "  skip"
-                print(f"  P0 vs {opp_name.replace('agent_',''):<35} s{seed} → ${s0:>7,.0f} / ${s1:>7,.0f}  {kept0}")
+                print(f"  P0 vs {opp_name.replace('agent_',''):<35} s{seed} → suspect ${s0:>7,.0f}  opp ${s1:>7,.0f}  {kept0}")
 
                 # Run suspect as P1
                 s0, s1, steps = run_game(fn_o, mod_o, fn_s, mod_s)
                 kept1 = "✓ KEPT" if s1 >= SCORE_THRESHOLD else "  skip"
-                print(f"  P1 vs {opp_name.replace('agent_',''):<35} s{seed} → ${s0:>7,.0f} / ${s1:>7,.0f}  {kept1}")
+                print(f"  P1 vs {opp_name.replace('agent_',''):<35} s{seed} → suspect ${s1:>7,.0f}  opp ${s0:>7,.0f}  {kept1}")
 
-                if s0 == 0 or s1 == 0:
-                    print(f"  !! WARNING: $0 score detected — reward bug still present !!")
+                suspect_score = s1  # suspect was P1 in this game
+                if suspect_score == 0:
+                    print(f"  !! WARNING: suspect scored $0 — reward bug still present !!")
                     all_pass = False
         print()
 

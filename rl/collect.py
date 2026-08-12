@@ -127,6 +127,7 @@ def run_game(fn0, mod0, fn1, mod1, seed):
 
     ep_obs0, ep_actions0 = [], []
     ep_obs1, ep_actions1 = [], []
+    last_money0, last_money1 = 3000, 3000
 
     while True:
         state0 = env.state[0]
@@ -137,6 +138,16 @@ def run_game(fn0, mod0, fn1, mod1, seed):
 
         obs0 = state0.observation
         obs1 = state1.observation
+
+        # Track money each turn — final state observation can be None on Kaggle
+        try:
+            last_money0 = obs0["farms"][obs0["player"]].get("money", last_money0)
+        except Exception:
+            pass
+        try:
+            last_money1 = obs1["farms"][obs1["player"]].get("money", last_money1)
+        except Exception:
+            pass
 
         # Get actions from both agents
         try:
@@ -156,26 +167,7 @@ def run_game(fn0, mod0, fn1, mod1, seed):
 
         env.step([a0, a1])
 
-    # Read final money directly from last observation — more reliable than
-    # env.steps[-1].reward which can be None in step-by-step mode
-    def _final_money(obs_list):
-        if not obs_list:
-            return 0
-        # ep_obs is encoded (float16 array), so we need the raw obs instead
-        return 0
-
-    # Re-read final raw obs from env state for reliable score
-    final_state = env.steps[-1]
-    try:
-        score0 = final_state[0].observation["farms"][0].get("money", 0) or 0
-    except Exception:
-        score0 = final_state[0].reward or 0
-    try:
-        score1 = final_state[1].observation["farms"][1].get("money", 0) or 0
-    except Exception:
-        score1 = final_state[1].reward or 0
-
-    return ep_obs0, ep_actions0, ep_obs1, ep_actions1, score0, score1
+    return ep_obs0, ep_actions0, ep_obs1, ep_actions1, last_money0, last_money1
 
 
 def save_checkpoint(all_obs, all_actions, all_scores, checkpoint_idx):
