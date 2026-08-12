@@ -55,11 +55,11 @@ def ne_sw_two_hands(obs):
         seeds  = obs["private"]["seeds"]
         shed   = obs["private"]["shed"]
         day    = obs["day"]
-        hour   = obs.get("hour", 0)
         prices = obs["market"]["prices"]
         money  = farm.get("money", 0) or 0
 
         s = _state.setdefault(player, {"land_ne": False, "land_sw": False})
+        last_hire_day = s.get("last_hire_day", -1)
         market_actions = []
 
         all_tiles   = _find_tiles(farm)
@@ -79,9 +79,10 @@ def ne_sw_two_hands(obs):
         WHEAT_TARGET = 3
 
         # 2 hands at hour 0 (cost: $1+$1 = $2/day)
-        if hour == 0:
+        if day != last_hire_day:
             market_actions.append(["HIRE"])
             market_actions.append(["HIRE"])
+            s["last_hire_day"] = day
 
         # Seeds
         spendable = max(0, money - 400)
