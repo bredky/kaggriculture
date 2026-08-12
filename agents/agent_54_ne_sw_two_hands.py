@@ -78,7 +78,7 @@ def ne_sw_two_hands(obs):
         WHEAT_TARGET = 3
 
         # 2 hands at hour 0 (cost: $1+$1 = $2/day)
-        if not farm.get("hands", []):
+        if obs.get("hour", 0) == 0:
             market_actions.append(["HIRE"])
             market_actions.append(["HIRE"])
 

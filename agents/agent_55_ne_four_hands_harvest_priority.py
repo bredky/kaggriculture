@@ -97,7 +97,7 @@ def ne_four_hands_harvest_priority(obs):
             s["land_ne"] = True
 
         # 4 hands at hour 0 ($7/day)
-        if not farm.get("hands", []):
+        if obs.get("hour", 0) == 0:
             for _ in range(4):
                 market_actions.append(["HIRE"])
 

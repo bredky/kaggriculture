@@ -72,7 +72,16 @@ def quad_hand_melon_blitz(obs):
         prices = obs["market"]["prices"]
         money  = farm.get("money", 0) or 0
 
-        s = _state.setdefault(player, {})
+        s = _state.setdefault(player, {"_dbg_turn": 0})
+        s["_dbg_turn"] += 1
+
+        # ── DEBUG: print first 10 turns so we can see what's happening on Kaggle ──
+        if s["_dbg_turn"] <= 10:
+            hour_val = obs.get("hour", "MISSING")
+            hands_val = farm.get("hands", [])
+            obs_keys = list(obs.keys())
+            print(f"[DBG51 P{player} turn={s['_dbg_turn']} day={day} hour={hour_val}] "
+                  f"money=${money} hands={len(hands_val)} obs_keys={obs_keys}")
 
         MELON_TARGET = 20
         WHEAT_TARGET = 3
@@ -87,9 +96,12 @@ def quad_hand_melon_blitz(obs):
 
         # ── Hire 4 hands at start of each day ───────────────────────────────────
         # Fibonacci resets daily: 1st=$1, 2nd=$1, 3rd=$2, 4th=$3 → total $7/day
-        if not farm.get("hands", []):
+        hire_fired = obs.get("hour", 0) == 0
+        if hire_fired:
             for _ in range(4):
                 market_actions.append(["HIRE"])
+        if s["_dbg_turn"] <= 10:
+            print(f"[DBG51 P{player} turn={s['_dbg_turn']}] hire_fired={hire_fired} market_so_far={market_actions}")
 
         # ── Buy seeds — only as many as we can afford ────────────────────────────
         spendable = max(0, money - BUFFER)

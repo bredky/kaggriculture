@@ -74,7 +74,7 @@ def ne_melon_one_hand(obs):
             s["land_ne"] = True
 
         # 1 hand at hour 0
-        if not farm.get("hands", []):
+        if obs.get("hour", 0) == 0:
             market_actions.append(["HIRE"])
 
         # Seeds — only buy what we can afford (keep $300 buffer)

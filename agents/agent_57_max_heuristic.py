@@ -169,7 +169,7 @@ def max_heuristic(obs):
         WHEAT_TARGET = 3 if not s["bail_out"] else 16
 
         # ── Hire 4 hands at hour 0 ───────────────────────────────────────────────
-        if not farm.get("hands", []):
+        if obs.get("hour", 0) == 0:
             for _ in range(4):
                 market_actions.append(["HIRE"])
 
