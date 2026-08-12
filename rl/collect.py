@@ -180,51 +180,62 @@ def save_checkpoint(all_obs, all_actions, all_scores, checkpoint_idx):
 
 
 def collect():
+    import time
     print("=== Kaggriculture Data Collection ===")
     print(f"Threshold: ${SCORE_THRESHOLD:,} | Seeds: {N_SEEDS} | Output: {OUTPUT_DIR}")
 
     agents = load_agents()
     n = len(agents)
     total_games = n * n * N_SEEDS
-    print(f"Total games: {n} × {n} × {N_SEEDS} = {total_games:,}")
+    print(f"Total games: {n} × {n} × {N_SEEDS} = {total_games:,}\n")
 
     all_obs, all_actions, all_scores = [], [], []
     checkpoint_idx = 0
     games_done = 0
     episodes_kept = 0
+    start_time = time.time()
 
     for i, (name0, mod0, fn0) in enumerate(agents):
         for j, (name1, mod1, fn1) in enumerate(agents):
             for seed in range(N_SEEDS):
                 games_done += 1
+                t0 = time.time()
 
                 try:
                     obs0, act0, obs1, act1, score0, score1 = run_game(
                         fn0, mod0, fn1, mod1, seed
                     )
                 except Exception as e:
-                    print(f"  [error] {name0} vs {name1} seed={seed}: {e}")
+                    print(f"  [ERROR] {name0} vs {name1} seed={seed}: {e}")
                     continue
 
-                # Only keep data from the player who scored above threshold
+                kept = []
                 if score0 >= SCORE_THRESHOLD:
                     all_obs.extend(obs0)
                     all_actions.extend(act0)
                     all_scores.extend([score0] * len(obs0))
                     episodes_kept += 1
+                    kept.append(f"P0 ${score0:.0f}")
 
                 if score1 >= SCORE_THRESHOLD:
                     all_obs.extend(obs1)
                     all_actions.extend(act1)
                     all_scores.extend([score1] * len(obs1))
                     episodes_kept += 1
+                    kept.append(f"P1 ${score1:.0f}")
 
-                # Progress log every 50 games
-                if games_done % 50 == 0:
-                    pct = 100 * games_done / total_games
-                    print(f"[{pct:5.1f}%] {games_done}/{total_games} games | "
-                          f"kept {episodes_kept} episodes | "
-                          f"buffer {len(all_obs):,} steps")
+                elapsed = time.time() - t0
+                pct = 100 * games_done / total_games
+                total_elapsed = time.time() - start_time
+                eta = (total_elapsed / games_done) * (total_games - games_done)
+                eta_str = f"{int(eta//60)}m{int(eta%60):02d}s"
+                kept_str = f"  ✓ kept {', '.join(kept)}" if kept else ""
+
+                short0 = name0.replace("agent_", "")
+                short1 = name1.replace("agent_", "")
+                print(f"[{pct:5.1f}% | {games_done:>5}/{total_games} | ETA {eta_str}] "
+                      f"{short0} vs {short1} s{seed} → "
+                      f"${score0:.0f} / ${score1:.0f} ({elapsed:.1f}s){kept_str}")
 
                 # Checkpoint to disk periodically
                 if len(all_obs) >= CHECKPOINT_EVERY * 720:
@@ -233,12 +244,20 @@ def collect():
                     )
                     checkpoint_idx += 1
 
+        # Summary after each agent finishes all matchups
+        total_elapsed = time.time() - start_time
+        print(f"\n── Agent {i+1}/{n} ({name0}) done | "
+              f"{episodes_kept} episodes kept | "
+              f"buffer {len(all_obs):,} steps | "
+              f"{int(total_elapsed//60)}m elapsed ──\n")
+
     # Save remaining data
     if all_obs:
         save_checkpoint(all_obs, all_actions, all_scores, checkpoint_idx)
 
-    print(f"\nDone. {games_done:,} games, {episodes_kept} episodes kept.")
-    print(f"Checkpoints saved to: {OUTPUT_DIR}")
+    total_elapsed = time.time() - start_time
+    print(f"\nDone in {int(total_elapsed//60)}m{int(total_elapsed%60):02d}s.")
+    print(f"{games_done:,} games | {episodes_kept} episodes kept | checkpoints in {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
