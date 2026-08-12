@@ -62,7 +62,6 @@ def ne_melon_one_hand(obs):
         WHEAT_TARGET = 3
 
         s = _state.setdefault(player, {"land_ne": False})
-        last_hire_day = s.get("last_hire_day", -1)
         market_actions = []
 
         all_tiles   = _find_tiles(farm)
@@ -75,9 +74,8 @@ def ne_melon_one_hand(obs):
             s["land_ne"] = True
 
         # 1 hand at hour 0
-        if day != last_hire_day:
+        if not farm.get("hands", []):
             market_actions.append(["HIRE"])
-            s["last_hire_day"] = day
 
         # Seeds — only buy what we can afford (keep $300 buffer)
         spendable = max(0, money - 300)

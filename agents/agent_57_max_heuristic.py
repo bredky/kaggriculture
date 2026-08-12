@@ -121,7 +121,6 @@ def max_heuristic(obs):
             "low_price_days": 0, "bail_out": False,
             "own_hist": [], "opp_hist": [], "last_track_day": -1,
         })
-        last_hire_day = s.get("last_hire_day", -1)
 
         # ── Track price + money once per day ────────────────────────────────────
         if day != s["last_price_day"]:
@@ -170,10 +169,9 @@ def max_heuristic(obs):
         WHEAT_TARGET = 3 if not s["bail_out"] else 16
 
         # ── Hire 4 hands at hour 0 ───────────────────────────────────────────────
-        if day != last_hire_day:
+        if not farm.get("hands", []):
             for _ in range(4):
                 market_actions.append(["HIRE"])
-            s["last_hire_day"] = day
 
         # ── Seeds — keep $500 buffer ─────────────────────────────────────────────
         spendable = max(0, money - 500)

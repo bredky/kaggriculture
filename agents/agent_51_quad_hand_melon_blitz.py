@@ -73,7 +73,6 @@ def quad_hand_melon_blitz(obs):
         money  = farm.get("money", 0) or 0
 
         s = _state.setdefault(player, {})
-        last_hire_day = s.get("last_hire_day", -1)
 
         MELON_TARGET = 20
         WHEAT_TARGET = 3
@@ -88,10 +87,9 @@ def quad_hand_melon_blitz(obs):
 
         # ── Hire 4 hands at start of each day ───────────────────────────────────
         # Fibonacci resets daily: 1st=$1, 2nd=$1, 3rd=$2, 4th=$3 → total $7/day
-        if day != last_hire_day:
+        if not farm.get("hands", []):
             for _ in range(4):
                 market_actions.append(["HIRE"])
-            s["last_hire_day"] = day
 
         # ── Buy seeds — only as many as we can afford ────────────────────────────
         spendable = max(0, money - BUFFER)

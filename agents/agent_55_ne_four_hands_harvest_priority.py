@@ -82,7 +82,6 @@ def ne_four_hands_harvest_priority(obs):
         money  = farm.get("money", 0) or 0
 
         s = _state.setdefault(player, {"land_ne": False})
-        last_hire_day = s.get("last_hire_day", -1)
         market_actions = []
 
         all_tiles   = _find_tiles(farm)
@@ -98,10 +97,9 @@ def ne_four_hands_harvest_priority(obs):
             s["land_ne"] = True
 
         # 4 hands at hour 0 ($7/day)
-        if day != last_hire_day:
+        if not farm.get("hands", []):
             for _ in range(4):
                 market_actions.append(["HIRE"])
-            s["last_hire_day"] = day
 
         # Seeds — conservative buy (keep $500 buffer)
         spendable = max(0, money - 500)
