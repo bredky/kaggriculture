@@ -75,13 +75,14 @@ def quad_hand_melon_blitz(obs):
         s = _state.setdefault(player, {"_dbg_turn": 0})
         s["_dbg_turn"] += 1
 
-        # ── DEBUG: print first 10 turns so we can see what's happening on Kaggle ──
-        if s["_dbg_turn"] <= 10:
-            hour_val = obs.get("hour", "MISSING")
+        # ── DEBUG: print at start of each day (hour==0) to track money across 30 days ──
+        hour_val = obs.get("hour", "MISSING")
+        if hour_val == 0 or s["_dbg_turn"] <= 3:
             hands_val = farm.get("hands", [])
-            obs_keys = list(obs.keys())
+            melon_in_seeds = obs["private"]["seeds"].get("MELON", 0)
+            melon_in_shed  = obs["private"]["shed"].get("MELON", 0)
             print(f"[DBG51 P{player} turn={s['_dbg_turn']} day={day} hour={hour_val}] "
-                  f"money=${money} hands={len(hands_val)} obs_keys={obs_keys}")
+                  f"money=${money} hands={len(hands_val)} seeds_melon={melon_in_seeds} shed_melon={melon_in_shed}")
 
         MELON_TARGET = 20
         WHEAT_TARGET = 3
@@ -100,7 +101,7 @@ def quad_hand_melon_blitz(obs):
         if hire_fired:
             for _ in range(4):
                 market_actions.append(["HIRE"])
-        if s["_dbg_turn"] <= 10:
+        if s["_dbg_turn"] <= 3:
             print(f"[DBG51 P{player} turn={s['_dbg_turn']}] hire_fired={hire_fired} market_so_far={market_actions}")
 
         # ── Buy seeds — only as many as we can afford ────────────────────────────
