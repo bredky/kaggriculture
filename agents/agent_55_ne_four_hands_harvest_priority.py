@@ -92,17 +92,17 @@ def ne_four_hands_harvest_priority(obs):
         WHEAT_TARGET = 3
 
         # Buy NE land asap
-        if not s["land_ne"] and money >= 1000:
+        if not s["land_ne"] and money >= 3000:
             market_actions.append(["BUY_LAND"])
             s["land_ne"] = True
 
         # 4 hands at hour 0 ($7/day)
         if obs.get("hour", 0) == 0:
-            for _ in range(4):
+            for _ in range(2):
                 market_actions.append(["HIRE"])
 
         # Seeds — conservative buy (keep $500 buffer)
-        spendable = max(0, money - 500)
+        spendable = max(0, money - 800)
         melon_have = melon_count + seeds.get("MELON", 0)
         if melon_have < MELON_TARGET:
             buy = min(MELON_TARGET - melon_have, max(0, int(spendable // 90)))

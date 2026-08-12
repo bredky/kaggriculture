@@ -69,7 +69,7 @@ def ne_melon_one_hand(obs):
         wheat_count = sum(1 for _, _, t in all_tiles if isinstance(t, dict) and t.get("crop") == "WHEAT")
 
         # Buy NE land asap (day 0 if possible)
-        if not s["land_ne"] and money >= 1000:
+        if not s["land_ne"] and money >= 2500:
             market_actions.append(["BUY_LAND"])
             s["land_ne"] = True
 
@@ -78,7 +78,7 @@ def ne_melon_one_hand(obs):
             market_actions.append(["HIRE"])
 
         # Seeds — only buy what we can afford (keep $300 buffer)
-        spendable = max(0, money - 300)
+        spendable = max(0, money - 600)
         melon_have = melon_count + seeds.get("MELON", 0)
         if melon_have < MELON_TARGET:
             buy = min(MELON_TARGET - melon_have, max(0, int(spendable // 90)))

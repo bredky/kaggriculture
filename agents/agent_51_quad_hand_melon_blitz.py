@@ -72,22 +72,12 @@ def quad_hand_melon_blitz(obs):
         prices = obs["market"]["prices"]
         money  = farm.get("money", 0) or 0
 
-        s = _state.setdefault(player, {"_dbg_turn": 0})
-        s["_dbg_turn"] += 1
+        s = _state.setdefault(player, {})
 
-        # ── DEBUG: print at start of each day (hour==0) to track money across 30 days ──
-        hour_val = obs.get("hour", "MISSING")
-        if hour_val == 0 or s["_dbg_turn"] <= 3:
-            hands_val = farm.get("hands", [])
-            melon_in_seeds = obs["private"]["seeds"].get("MELON", 0)
-            melon_in_shed  = obs["private"]["shed"].get("MELON", 0)
-            print(f"[DBG51 P{player} turn={s['_dbg_turn']} day={day} hour={hour_val}] "
-                  f"money=${money} hands={len(hands_val)} seeds_melon={melon_in_seeds} shed_melon={melon_in_shed}")
-
-        MELON_TARGET = 20
+        MELON_TARGET = 12
         WHEAT_TARGET = 3
-        SEED_PRICE   = 90   # conservative per-seed cost estimate
-        BUFFER       = 400  # keep this much cash in reserve
+        SEED_PRICE   = 90
+        BUFFER       = 800  # larger buffer: survive 10+ days at $20/day hire cost
 
         market_actions = []
 
@@ -97,12 +87,9 @@ def quad_hand_melon_blitz(obs):
 
         # ── Hire 4 hands at start of each day ───────────────────────────────────
         # Fibonacci resets daily: 1st=$1, 2nd=$1, 3rd=$2, 4th=$3 → total $7/day
-        hire_fired = obs.get("hour", 0) == 0
-        if hire_fired:
-            for _ in range(4):
+        if obs.get("hour", 0) == 0:
+            for _ in range(2):
                 market_actions.append(["HIRE"])
-        if s["_dbg_turn"] <= 3:
-            print(f"[DBG51 P{player} turn={s['_dbg_turn']}] hire_fired={hire_fired} market_so_far={market_actions}")
 
         # ── Buy seeds — only as many as we can afford ────────────────────────────
         spendable = max(0, money - BUFFER)

@@ -66,10 +66,10 @@ def ne_sw_two_hands(obs):
         wheat_count = sum(1 for _, _, t in all_tiles if isinstance(t, dict) and t.get("crop") == "WHEAT")
 
         # Land: NE asap, SW once we have $2500+ and it's past day 5
-        if not s["land_ne"] and money >= 1000:
+        if not s["land_ne"] and money >= 3000:
             market_actions.append(["BUY_LAND"])
             s["land_ne"] = True
-        if s["land_ne"] and not s["land_sw"] and money >= 2500 and day >= 5:
+        if s["land_ne"] and not s["land_sw"] and money >= 5000 and day >= 10:
             market_actions.append(["BUY_LAND"])
             s["land_sw"] = True
 
@@ -83,7 +83,7 @@ def ne_sw_two_hands(obs):
             market_actions.append(["HIRE"])
 
         # Seeds
-        spendable = max(0, money - 400)
+        spendable = max(0, money - 700)
         melon_have = melon_count + seeds.get("MELON", 0)
         if melon_have < MELON_TARGET:
             buy = min(MELON_TARGET - melon_have, max(0, int(spendable // 90)))

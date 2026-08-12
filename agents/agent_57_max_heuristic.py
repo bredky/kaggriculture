@@ -152,29 +152,29 @@ def max_heuristic(obs):
         wheat_count = sum(1 for _, _, t in all_tiles if isinstance(t, dict) and t.get("crop") == "WHEAT")
 
         # ── Land: NE day 0, SW once first batch sells (money > $3k) ────────────
-        if not s["land_ne"] and money >= 1000:
+        if not s["land_ne"] and money >= 3000:
             market_actions.append(["BUY_LAND"])
             s["land_ne"] = True
-        if s["land_ne"] and not s["land_sw"] and money >= 3000 and day >= 5:
+        if s["land_ne"] and not s["land_sw"] and money >= 5000 and day >= 10:
             market_actions.append(["BUY_LAND"])
             s["land_sw"] = True
 
         # Melon target scales with land
         if s["land_sw"]:
-            MELON_TARGET = 24
+            MELON_TARGET = 20
         elif s["land_ne"]:
-            MELON_TARGET = 16
+            MELON_TARGET = 14
         else:
-            MELON_TARGET = 10
+            MELON_TARGET = 8
         WHEAT_TARGET = 3 if not s["bail_out"] else 16
 
-        # ── Hire 4 hands at hour 0 ───────────────────────────────────────────────
+        # ── Hire 2 hands at hour 0 ───────────────────────────────────────────────
         if obs.get("hour", 0) == 0:
-            for _ in range(4):
+            for _ in range(2):
                 market_actions.append(["HIRE"])
 
         # ── Seeds — keep $500 buffer ─────────────────────────────────────────────
-        spendable = max(0, money - 500)
+        spendable = max(0, money - 800)
         if not s["bail_out"]:
             melon_have = melon_count + seeds.get("MELON", 0)
             if melon_have < MELON_TARGET:
