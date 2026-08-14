@@ -116,7 +116,14 @@ class ImitationDataset(Dataset):
         # Print action distribution so we can spot imbalances
         unique, counts = np.unique(actions, return_counts=True)
         print("Action distribution:")
-        action_names = ["PASS","NORTH","SOUTH","EAST","WEST","WATER","HARVEST","PLANT_W","PLANT_M","DIG"]
+        action_names = [
+            "PASS","NORTH","SOUTH","EAST","WEST","WATER","HARVEST","PLANT_WHEAT","PLANT_MELON","DIG",
+            "PLANT_TOMATO","PLANT_CARROT","PLANT_STRAWBERRY","BUILD_COOP","BUILD_PASTURE",
+            "PICKUP_ANIMAL","PICKUP_WHEAT","PLACE_ANIMAL","CARE","COLLECT_FERT",
+            "HIRE","BUY_LAND","SELL_MELON","SELL_WHEAT","SELL_TOMATO","SELL_CARROT",
+            "SELL_STRAWBERRY","SELL_FERT","BUY_GOOSE","BUY_COW","BUY_SHEEP",
+            "BUY_SEED_WHEAT","BUY_SEED_TOMATO","BUY_SEED_CARROT","BUY_SEED_STRAW",
+        ]
         for a, c in zip(unique, counts):
             name = action_names[a] if a < len(action_names) else str(a)
             print(f"  {name:<10} {c:>8,}  ({100*c/len(actions):.1f}%)")

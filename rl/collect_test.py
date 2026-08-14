@@ -15,7 +15,7 @@ from kaggle_environments import make
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from rl.env import encode_obs
-from rl.collect import farmer_action_to_int, reset_agent_state, SCORE_THRESHOLD
+from rl.collect import action_to_int, reset_agent_state, SCORE_THRESHOLD
 
 AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "agents")
 

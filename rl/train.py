@@ -7,7 +7,7 @@ policy network, then trains via self-play against a rotating pool of all
 can do, while starting from a sensible policy instead of random noise.
 
 Architecture match:
-    FarmNet (imitation):    Linear(510,256) → Linear(256,256) → Linear(256,128) → Linear(128,10)
+    FarmNet (imitation):    Linear(741,256) → Linear(256,256) → Linear(256,128) → Linear(128,35)
     SB3 MlpPolicy net_arch: [256, 256, 128] with separate pi/vf heads
     We copy FarmNet weights into SB3's policy layers before training starts.
 
@@ -126,10 +126,10 @@ def transfer_imitation_weights(ppo_model, imitation_path):
     the corresponding layers of SB3's MlpPolicy.
 
     SB3 MlpPolicy layer mapping (with net_arch=[256, 256, 128]):
-        mlp_extractor.policy_net[0]  ←  FarmNet net[0]   Linear(510, 256)
+        mlp_extractor.policy_net[0]  ←  FarmNet net[0]   Linear(741, 256)
         mlp_extractor.policy_net[2]  ←  FarmNet net[2]   Linear(256, 256)
         mlp_extractor.policy_net[4]  ←  FarmNet net[4]   Linear(256, 128)
-        action_net                   ←  FarmNet net[6]   Linear(128, 10)
+        action_net                   ←  FarmNet net[6]   Linear(128, 35)
 
     The value head (vf) is left randomly initialised — it has nothing to
     imitate from the heuristic data and will learn from PPO rewards.

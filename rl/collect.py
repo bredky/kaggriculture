@@ -7,9 +7,10 @@ Only saves data from episodes where the agent scored above SCORE_THRESHOLD
 — we only want to imitate good play.
 
 Output (saved to OUTPUT_DIR):
-    obs.npy        float16 array of shape (N, 510) — encoded observations
-    actions.npy    int8 array of shape (N,)        — farmer action indices
-    scores.npy     float32 array of shape (N,)     — final score for that episode step
+    checkpoint_NNNN.npz  contains:
+      obs     float16 array of shape (N, 741) — encoded observations
+      actions int8 array of shape (N,)        — farmer action indices (0-34)
+      scores  float32 array of shape (N,)     — final score for that episode step
 
 Run on Kaggle: output goes to /kaggle/working/data/
 """
@@ -34,19 +35,86 @@ SCORE_THRESHOLD = 18_000
 N_SEEDS = 5
 
 # Where to save data (works locally and on Kaggle)
-OUTPUT_DIR = os.environ.get("KAGGLE_WORKING_DIR", "/kaggle/working") + "/data"
+_default_working = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "working")
+OUTPUT_DIR = os.path.join(os.environ.get("KAGGLE_WORKING_DIR", _default_working), "data")
 
 # Save a checkpoint to disk every this many episodes (avoids OOM on large runs)
 CHECKPOINT_EVERY = 500
 
+# Mini-mode: set via --mini flag. Runs 1 protagonist vs all agents, 1 seed.
+MINI_MODE = "--mini" in sys.argv
+MINI_PROTAGONIST = "agent_36_nearest_task_greedy"  # best heuristic as protagonist
+
 # --- Action mapping ---
 
-# Map a heuristic farmer action list back to our discrete action index.
-# Actions not in our space (e.g. PLANT STRAWBERRY) map to PASS (0).
-_ACTION_TO_INT = {tuple(a): i for i, a in enumerate(FARMER_ACTIONS)}
+# Direct farmer action → int (actions 0-19)
+_FARMER_TO_INT = {
+    ("PASS",): 0,
+    ("NORTH",): 1,
+    ("SOUTH",): 2,
+    ("EAST",): 3,
+    ("WEST",): 4,
+    ("WATER",): 5,
+    ("HARVEST",): 6,
+    ("PLANT", "WHEAT"): 7,
+    ("PLANT", "MELON"): 8,
+    ("DIG",): 9,
+    ("PLANT", "TOMATO"): 10,
+    ("PLANT", "CARROT"): 11,
+    ("PLANT", "STRAWBERRY"): 12,
+    ("BUILD_COOP",): 13,
+    ("BUILD_PASTURE",): 14,
+    # 15/16/17 handled separately (PICKUP/PLACE with variable args)
+    ("CARE",): 18,
+    ("COLLECT_FERTILIZER",): 19,
+}
 
-def farmer_action_to_int(farmer_action):
-    return _ACTION_TO_INT.get(tuple(farmer_action), 0)
+def action_to_int(farmer_action, market_actions):
+    """
+    Map a heuristic turn to a single action integer (0-34).
+    Farmer actions take priority over market actions.
+    """
+    fa = tuple(str(x) for x in farmer_action) if farmer_action else ("PASS",)
+
+    # PICKUP animal → 15, PICKUP wheat → 16
+    if fa[0] == "PICKUP" and len(fa) >= 2:
+        if fa[1] in ("GOOSE", "COW", "SHEEP"):
+            return 15
+        if fa[1] == "WHEAT":
+            return 16
+
+    # PLACE animal → 17
+    if fa[0] == "PLACE" and len(fa) >= 2 and fa[1] in ("GOOSE", "COW", "SHEEP"):
+        return 17
+
+    farmer_int = _FARMER_TO_INT.get(fa)
+    if farmer_int is not None and farmer_int != 0:
+        return farmer_int
+
+    # Farmer is PASSing — check market for strategic decisions
+    market_ops = [tuple(str(x) for x in m) for m in (market_actions or [])]
+    for m in market_ops:
+        if not m: continue
+        if m[0] == "SELL" and len(m) > 1:
+            if m[1] == "MELON":       return 22
+            if m[1] == "WHEAT":       return 23
+            if m[1] == "TOMATO":      return 24
+            if m[1] == "CARROT":      return 25
+            if m[1] == "STRAWBERRY":  return 26
+            if m[1] == "FERTILIZER":  return 27
+        elif m[0] == "BUY_ANIMAL" and len(m) > 1:
+            if m[1] == "GOOSE":  return 28
+            if m[1] == "COW":    return 29
+            if m[1] == "SHEEP":  return 30
+        elif m[0] == "HIRE":     return 20
+        elif m[0] == "BUY_LAND": return 21
+        elif m[0] == "BUY_SEED" and len(m) > 1:
+            if m[1] == "WHEAT":       return 31
+            if m[1] == "TOMATO":      return 32
+            if m[1] == "CARROT":      return 33
+            if m[1] == "STRAWBERRY":  return 34
+
+    return 0  # PASS
 
 
 # --- Agent loader ---
@@ -161,9 +229,9 @@ def run_game(fn0, mod0, fn1, mod1, seed):
 
         # Record before stepping
         ep_obs0.append(encode_obs(obs0).astype(np.float16))
-        ep_actions0.append(farmer_action_to_int(a0.get("farmer", ["PASS"])))
+        ep_actions0.append(action_to_int(a0.get("farmer", ["PASS"]), a0.get("market", [])))
         ep_obs1.append(encode_obs(obs1).astype(np.float16))
-        ep_actions1.append(farmer_action_to_int(a1.get("farmer", ["PASS"])))
+        ep_actions1.append(action_to_int(a1.get("farmer", ["PASS"]), a1.get("market", [])))
 
         env.step([a0, a1])
 
@@ -187,13 +255,31 @@ def save_checkpoint(all_obs, all_actions, all_scores, checkpoint_idx):
 
 def collect():
     import time
+
+    seeds = 1 if MINI_MODE else N_SEEDS
+    threshold = 0 if MINI_MODE else SCORE_THRESHOLD
+
     print("=== Kaggriculture Data Collection ===")
-    print(f"Threshold: ${SCORE_THRESHOLD:,} | Seeds: {N_SEEDS} | Output: {OUTPUT_DIR}")
+    if MINI_MODE:
+        print(f"MINI MODE: protagonist={MINI_PROTAGONIST} vs all agents, seeds=1, threshold=$0")
+    print(f"Threshold: ${threshold:,} | Seeds: {seeds} | Output: {OUTPUT_DIR}")
 
     agents = load_agents()
-    n = len(agents)
-    total_games = n * n * N_SEEDS
-    print(f"Total games: {n} × {n} × {N_SEEDS} = {total_games:,}\n")
+
+    if MINI_MODE:
+        protagonists = [(n, m, f) for n, m, f in agents if MINI_PROTAGONIST in n]
+        if not protagonists:
+            print(f"[ERROR] protagonist {MINI_PROTAGONIST} not found. Using first agent.")
+            protagonists = [agents[0]]
+        # protagonist vs all agents (not all vs all)
+        pairs = [(protagonists[0], opp) for opp in agents]
+        total_games = len(pairs) * seeds
+        print(f"Total games: 1 × {len(agents)} × {seeds} = {total_games}\n")
+    else:
+        n = len(agents)
+        pairs = [(p, o) for p in agents for o in agents]
+        total_games = len(pairs) * seeds
+        print(f"Total games: {n} × {n} × {seeds} = {total_games:,}\n")
 
     all_obs, all_actions, all_scores = [], [], []
     checkpoint_idx = 0
@@ -201,61 +287,53 @@ def collect():
     episodes_kept = 0
     start_time = time.time()
 
-    for i, (name0, mod0, fn0) in enumerate(agents):
-        for j, (name1, mod1, fn1) in enumerate(agents):
-            for seed in range(N_SEEDS):
-                games_done += 1
-                t0 = time.time()
+    for seed in range(seeds):
+        for (name0, mod0, fn0), (name1, mod1, fn1) in pairs:
+            games_done += 1
+            t0 = time.time()
 
-                try:
-                    obs0, act0, obs1, act1, score0, score1 = run_game(
-                        fn0, mod0, fn1, mod1, seed
-                    )
-                except Exception as e:
-                    print(f"  [ERROR] {name0} vs {name1} seed={seed}: {e}")
-                    continue
+            try:
+                obs0, act0, obs1, act1, score0, score1 = run_game(
+                    fn0, mod0, fn1, mod1, seed
+                )
+            except Exception as e:
+                print(f"  [ERROR] {name0} vs {name1} seed={seed}: {e}")
+                continue
 
-                kept = []
-                if score0 >= SCORE_THRESHOLD:
-                    all_obs.extend(obs0)
-                    all_actions.extend(act0)
-                    all_scores.extend([score0] * len(obs0))
-                    episodes_kept += 1
-                    kept.append(f"P0 ${score0:.0f}")
+            kept = []
+            if score0 >= threshold:
+                all_obs.extend(obs0)
+                all_actions.extend(act0)
+                all_scores.extend([score0] * len(obs0))
+                episodes_kept += 1
+                kept.append(f"P0 ${score0:.0f}")
 
-                if score1 >= SCORE_THRESHOLD:
-                    all_obs.extend(obs1)
-                    all_actions.extend(act1)
-                    all_scores.extend([score1] * len(obs1))
-                    episodes_kept += 1
-                    kept.append(f"P1 ${score1:.0f}")
+            if score1 >= threshold:
+                all_obs.extend(obs1)
+                all_actions.extend(act1)
+                all_scores.extend([score1] * len(obs1))
+                episodes_kept += 1
+                kept.append(f"P1 ${score1:.0f}")
 
-                elapsed = time.time() - t0
-                pct = 100 * games_done / total_games
-                total_elapsed = time.time() - start_time
-                eta = (total_elapsed / games_done) * (total_games - games_done)
-                eta_str = f"{int(eta//60)}m{int(eta%60):02d}s"
-                kept_str = f"  ✓ kept {', '.join(kept)}" if kept else ""
+            elapsed = time.time() - t0
+            pct = 100 * games_done / total_games
+            total_elapsed = time.time() - start_time
+            eta = (total_elapsed / games_done) * (total_games - games_done)
+            eta_str = f"{int(eta//60)}m{int(eta%60):02d}s"
+            kept_str = f"  ✓ kept {', '.join(kept)}" if kept else ""
 
-                short0 = name0.replace("agent_", "")
-                short1 = name1.replace("agent_", "")
-                print(f"[{pct:5.1f}% | {games_done:>5}/{total_games} | ETA {eta_str}] "
-                      f"{short0} vs {short1} s{seed} → "
-                      f"${score0:.0f} / ${score1:.0f} ({elapsed:.1f}s){kept_str}")
+            short0 = name0.replace("agent_", "")
+            short1 = name1.replace("agent_", "")
+            print(f"[{pct:5.1f}% | {games_done:>5}/{total_games} | ETA {eta_str}] "
+                  f"{short0} vs {short1} s{seed} → "
+                  f"${score0:.0f} / ${score1:.0f} ({elapsed:.1f}s){kept_str}")
 
-                # Checkpoint to disk periodically
-                if len(all_obs) >= CHECKPOINT_EVERY * 720:
-                    all_obs, all_actions, all_scores = save_checkpoint(
-                        all_obs, all_actions, all_scores, checkpoint_idx
-                    )
-                    checkpoint_idx += 1
-
-        # Summary after each agent finishes all matchups
-        total_elapsed = time.time() - start_time
-        print(f"\n── Agent {i+1}/{n} ({name0}) done | "
-              f"{episodes_kept} episodes kept | "
-              f"buffer {len(all_obs):,} steps | "
-              f"{int(total_elapsed//60)}m elapsed ──\n")
+            # Checkpoint to disk periodically
+            if len(all_obs) >= CHECKPOINT_EVERY * 720:
+                all_obs, all_actions, all_scores = save_checkpoint(
+                    all_obs, all_actions, all_scores, checkpoint_idx
+                )
+                checkpoint_idx += 1
 
     # Save remaining data
     if all_obs:
